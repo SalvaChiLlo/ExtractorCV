@@ -1,31 +1,31 @@
 // COMO ACTUAR ANTE DUPLICADOS
 // EL CODIGOPROVINCIA/LOCALIDAD VIENE DEL CODIGO POSTAL? LO TENIAMOS MAL EN LA PLANTILLA?
 import { BibliotecaModel, LocalidadModel, ProvinciumModel } from './../../IEIBack/src/models/biblioteca.models';
-import { BibliotecaEUS } from './cvmodel';
+import { BibliotecaCV } from './cvmodel';
 const fs = require('fs');
 import path from "path";
 const { Biblioteca, Localidad, Provincia } = require('../../IEIBack/src/sqldb');
 
-export function extractDataEUS(rawData: BibliotecaEUS[]) {
-  console.log('Extracting EUS_DATA')
+export function extractDataEUS(rawData: BibliotecaCV[]) {
+  console.log('Extracting CV_DATA')
 
   const provincias: ProvinciumModel[] = getProvincias(rawData);
   const localidades: LocalidadModel[] = getLocalidades(rawData);
   const bibliotecas: BibliotecaModel[] = getBibliotecas(rawData);
 
-  console.log('Populating EUS_DATA');
+  console.log('Populating CV_DATA');
   populateDB(provincias, localidades, bibliotecas);
 }
 
-function getProvincias(bibliotecas: BibliotecaEUS[]): ProvinciumModel[] {
+function getProvincias(bibliotecas: BibliotecaCV[]): ProvinciumModel[] {
   let provincias: ProvinciumModel[] = [];
 
   bibliotecas.forEach(biblioteca => {
-    const codPostal = biblioteca.postalcode.replace('.', '')
+    const codPostal = biblioteca.CP;
 
     const provincia: ProvinciumModel = {
-      nombreProvincia: biblioteca.territory,
-      codigoProvincia: codPostal.slice(0, 2)
+      nombreProvincia: biblioteca.NOM_PROVINCIA,
+      codigoProvincia: biblioteca.COD_PROVINCIA.toString()
     }
 
     if (provincia.codigoProvincia && provincia.nombreProvincia) {
@@ -48,16 +48,16 @@ function getProvincias(bibliotecas: BibliotecaEUS[]): ProvinciumModel[] {
   return provinciasUnicas;
 }
 
-function getLocalidades(bibliotecas: BibliotecaEUS[]): LocalidadModel[] {
+function getLocalidades(bibliotecas: BibliotecaCV[]): LocalidadModel[] {
   let localidades: LocalidadModel[] = [];
 
   bibliotecas.forEach(biblioteca => {
-    const codPostal = biblioteca.postalcode.replace('.', '')
+    const codPostal = biblioteca.CP
 
     const localidad: LocalidadModel = {
-      codigoLocalidad: codPostal.slice(2),
-      nombreLocalidad: biblioteca.municipality.replace(/ /g, '').replace(/\//g, '-'),
-      ProvinciumNombreProvincia: biblioteca.territory
+      codigoLocalidad: biblioteca.COD_MUNICIPIO.toString(),
+      nombreLocalidad: biblioteca.NOM_MUNICIPIO,
+      ProvinciumNombreProvincia: biblioteca.NOM_PROVINCIA
     }
 
     if (localidad.codigoLocalidad && localidad.nombreLocalidad && localidad.ProvinciumNombreProvincia) {
@@ -83,21 +83,21 @@ function getLocalidades(bibliotecas: BibliotecaEUS[]): LocalidadModel[] {
   return localidadesUnicas;
 }
 
-function getBibliotecas(bibliotecas: BibliotecaEUS[]): BibliotecaModel[] {
+function getBibliotecas(bibliotecas: BibliotecaCV[]): BibliotecaModel[] {
   let bibliotecasRes: BibliotecaModel[] = [];
 
   bibliotecas.forEach(biblioteca => {
     const provincia: BibliotecaModel = {
-      nombre: biblioteca.documentName,
-      tipo: 'Pública',
-      direccion: biblioteca.address,
-      codigoPostal: biblioteca.postalcode.replace('.', ''),
-      longitud: +biblioteca.lonwgs84,
-      latitud: +biblioteca.latwgs84,
-      telefono: biblioteca.phone.replace(/ /g, '').slice(0, 9),
-      email: biblioteca.email,
-      descripcion: biblioteca.documentDescription,
-      LocalidadNombreLocalidad: biblioteca.municipality.replace(/ /g, '').replace(/\//g, '-'),
+      nombre: biblioteca.NOMBRE,
+      tipo: biblioteca.DESC_CARACTER,
+      direccion: biblioteca.DIRECCION,
+      codigoPostal: biblioteca.CP.toString(),
+      longitud: + biblioteca.lonwgs84,
+      latitud: + biblioteca.latwgs84,
+      telefono: biblioteca.TELEFONO.slice(4, 13),
+      email: biblioteca.EMAIL,
+      descripcion: biblioteca.TIPO,
+      LocalidadNombreLocalidad: biblioteca.NOM_MUNICIPIO,
     }
 
     bibliotecasRes.push(provincia)
