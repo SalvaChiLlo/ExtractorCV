@@ -6,13 +6,15 @@ const fs = require('fs');
 import path from "path";
 const { Biblioteca, Localidad, Provincia } = require('../../IEIBack/src/sqldb');
 
-export function extractDataEUS(rawData: BibliotecaCV[]) {
+export function extractDataCV(rawData: BibliotecaCV[]) {
   console.log('Extracting CV_DATA')
-
+  console.log(rawData, 'RAWDATA')
   const provincias: ProvinciumModel[] = getProvincias(rawData);
   const localidades: LocalidadModel[] = getLocalidades(rawData);
   const bibliotecas: BibliotecaModel[] = getBibliotecas(rawData);
 
+  console.log(provincias)
+  console.log(localidades)
   console.log('Populating CV_DATA');
   populateDB(provincias, localidades, bibliotecas);
 }
@@ -89,12 +91,12 @@ function getBibliotecas(bibliotecas: BibliotecaCV[]): BibliotecaModel[] {
   bibliotecas.forEach(biblioteca => {
     const provincia: BibliotecaModel = {
       nombre: biblioteca.NOMBRE,
-      tipo: biblioteca.DESC_CARACTER,
+      tipo: biblioteca.DESC_CARACTER === 'PÚBLICA' ? 'Pública' : 'Privada',
       direccion: biblioteca.DIRECCION,
       codigoPostal: biblioteca.CP.toString(),
-      longitud: + biblioteca.lonwgs84,
-      latitud: + biblioteca.latwgs84,
-      telefono: biblioteca.TELEFONO.slice(4, 13),
+      longitud: 0.0 /* + biblioteca.lonwgs84 */,
+      latitud: 0.0 /* + biblioteca.latwgs84 */,
+      telefono: biblioteca.TELEFONO.slice(5, 14),
       email: biblioteca.EMAIL,
       descripcion: biblioteca.TIPO,
       LocalidadNombreLocalidad: biblioteca.NOM_MUNICIPIO,

@@ -1,14 +1,14 @@
 // Converted with https://csvjson.com/csv2json
 
 export interface BibliotecaCV {
-  COD_PROVINCIA: number | string; // 46 | "03",
+  COD_PROVINCIA: string; // 46 | "03",
   NOM_PROVINCIA: string // "VALENCIA",
   COD_MUNICIPIO: number; // 228,
   NOM_MUNICIPIO: string; // "SERRA",
   TIPO: string // "BIBLIOTECA ESPECIALIZADA",
   NOMBRE: string; // "BIBLIOTECA ESPECIALIZADA HOSPITAL DR  MOLINER SERRA",
   DIRECCION: string; // "CALLE PORTA-COELI Nº S/N",
-  CP: number | string; // 46118 | "03005",
+  CP: string; // 46118 | "03005",
   TELEFONO: string; // "TELF.961687912",
   FAX: string; // "FAX.963614407",
   WEB: string; // "HTTP://WWW.COIAL.ORG/",
