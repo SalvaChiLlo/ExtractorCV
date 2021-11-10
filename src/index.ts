@@ -89,7 +89,7 @@ function getBibliotecas(bibliotecas: BibliotecaCV[]): BibliotecaModel[] {
   bibliotecas.forEach(biblioteca => {
     const provincia: BibliotecaModel = {
       nombre: biblioteca.NOMBRE,
-      tipo: 'Pública',
+      tipo: biblioteca.DESC_CARACTER,
       direccion: biblioteca.DIRECCION,
       codigoPostal: biblioteca.CP.toString(),
       longitud: + biblioteca.lonwgs84,
