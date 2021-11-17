@@ -1,3 +1,4 @@
+import { GeoCoder } from './../../IEIBack/src/models/biblioteca.models';
 // COMO ACTUAR ANTE DUPLICADOS
 // EL CODIGOPROVINCIA/LOCALIDAD VIENE DEL CODIGO POSTAL? LO TENIAMOS MAL EN LA PLANTILLA?
 import { BibliotecaModel, LocalidadModel, ProvinciumModel } from './../../IEIBack/src/models/biblioteca.models';
@@ -5,16 +6,30 @@ import { BibliotecaCV } from './cvmodel';
 const fs = require('fs');
 import path from "path";
 const { Biblioteca, Localidad, Provincia } = require('../../IEIBack/src/sqldb');
+const NodeGeocoder = require('node-geocoder');
 
-export function extractDataCV(rawData: BibliotecaCV[]) {
+
+
+const options = {
+  provider: 'mapquest',
+
+  apiKey: 'pViqJFOnVmpOCwqDbbcAAw4NSmY3IAWm', // for Mapquest, OpenCage, Google Premier
+  // formatter: null // 'gpx', 'string', ...
+};
+const geocoder = NodeGeocoder(options);
+
+// Using callback
+
+async function getCoordinates(dir: string) {
+  return await geocoder.geocode(dir);
+}
+
+export async function extractDataCV(rawData: BibliotecaCV[]) {
   console.log('Extracting CV_DATA')
-  console.log(rawData, 'RAWDATA')
   const provincias: ProvinciumModel[] = getProvincias(rawData);
   const localidades: LocalidadModel[] = getLocalidades(rawData);
-  const bibliotecas: BibliotecaModel[] = getBibliotecas(rawData);
+  const bibliotecas: BibliotecaModel[] = await getBibliotecas(rawData);
 
-  console.log(provincias)
-  console.log(localidades)
   console.log('Populating CV_DATA');
   populateDB(provincias, localidades, bibliotecas);
 }
@@ -26,8 +41,8 @@ function getProvincias(bibliotecas: BibliotecaCV[]): ProvinciumModel[] {
     const codPostal = biblioteca.CP;
 
     const provincia: ProvinciumModel = {
-      nombreProvincia: biblioteca.NOM_PROVINCIA,
-      codigoProvincia: biblioteca.COD_PROVINCIA.toString()
+      nombreProvincia: biblioteca.NOM_PROVINCIA.slice(0, 1) + biblioteca.NOM_PROVINCIA.slice(1).toLowerCase(),
+      codigoProvincia: codPostal.slice(0, 2)
     }
 
     if (provincia.codigoProvincia && provincia.nombreProvincia) {
@@ -57,9 +72,9 @@ function getLocalidades(bibliotecas: BibliotecaCV[]): LocalidadModel[] {
     const codPostal = biblioteca.CP
 
     const localidad: LocalidadModel = {
-      codigoLocalidad: biblioteca.COD_MUNICIPIO.toString(),
-      nombreLocalidad: biblioteca.NOM_MUNICIPIO,
-      ProvinciumNombreProvincia: biblioteca.NOM_PROVINCIA
+      codigoLocalidad: codPostal.slice(2),
+      nombreLocalidad: biblioteca.NOM_MUNICIPIO.slice(0, 1) + biblioteca.NOM_MUNICIPIO.slice(1).toLowerCase(),
+      ProvinciumNombreProvincia: biblioteca.NOM_PROVINCIA.slice(0, 1) + biblioteca.NOM_PROVINCIA.slice(1).toLowerCase()
     }
 
     if (localidad.codigoLocalidad && localidad.nombreLocalidad && localidad.ProvinciumNombreProvincia) {
@@ -85,38 +100,26 @@ function getLocalidades(bibliotecas: BibliotecaCV[]): LocalidadModel[] {
   return localidadesUnicas;
 }
 
-function getBibliotecas(bibliotecas: BibliotecaCV[]): BibliotecaModel[] {
+async function getBibliotecas(bibliotecas: BibliotecaCV[]): Promise<BibliotecaModel[]> {
   let bibliotecasRes: BibliotecaModel[] = [];
 
-  bibliotecas.forEach(biblioteca => {
-    const provincia: BibliotecaModel = {
+  const promise = await bibliotecas.map(async (biblioteca, index) => {
+    const coordinates = await getCoordinates('España Comunidad Valenciana cp.' + biblioteca.CP + ' ' + biblioteca.NOM_MUNICIPIO + ' ' + biblioteca.DIRECCION)
+    const bibliotecaParseada: BibliotecaModel = {
       nombre: biblioteca.NOMBRE,
       tipo: biblioteca.DESC_CARACTER === 'PÚBLICA' ? 'Pública' : 'Privada',
       direccion: biblioteca.DIRECCION,
       codigoPostal: biblioteca.CP.toString(),
-      longitud: 0.0 /* + biblioteca.lonwgs84 */,
-      latitud: 0.0 /* + biblioteca.latwgs84 */,
+      longitud: coordinates[0]?.longitude /* + biblioteca.lonwgs84 */,
+      latitud: coordinates[0]?.latitude /* + biblioteca.latwgs84 */,
       telefono: biblioteca.TELEFONO.slice(5, 14),
       email: biblioteca.EMAIL,
       descripcion: biblioteca.TIPO,
-      LocalidadNombreLocalidad: biblioteca.NOM_MUNICIPIO,
+      LocalidadNombreLocalidad: biblioteca.NOM_MUNICIPIO.slice(0, 1) + biblioteca.NOM_MUNICIPIO.slice(1).toLowerCase(),
     }
-
-    bibliotecasRes.push(provincia)
+    bibliotecasRes.push(bibliotecaParseada)
   })
-
-  // const bibliotecasUnicas: BibliotecaModel[] = []
-
-  // bibliotecasRes.forEach(biblioteca => {
-  //   const repeated = bibliotecasUnicas.filter(bibliotecaUnica => {
-  //     return bibliotecaUnica.nombre === biblioteca.nombre
-  //   })
-
-  //   if (!repeated.length) {
-  //     bibliotecasUnicas.push(biblioteca)
-  //   }
-  // })
-
+  await Promise.all(promise);
   return bibliotecasRes;
 }
 
