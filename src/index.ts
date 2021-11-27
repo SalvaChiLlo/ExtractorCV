@@ -1,3 +1,4 @@
+import { GeoCoder } from './../../IEIBack/src/models/biblioteca.models';
 // COMO ACTUAR ANTE DUPLICADOS
 // EL CODIGOPROVINCIA/LOCALIDAD VIENE DEL CODIGO POSTAL? LO TENIAMOS MAL EN LA PLANTILLA?
 import { BibliotecaModel, LocalidadModel, ProvinciumModel } from './../../IEIBack/src/models/biblioteca.models';
@@ -12,7 +13,7 @@ const NodeGeocoder = require('node-geocoder');
 const options = {
   provider: 'mapquest',
 
-  apiKey: 'MstdCetNjUVoybAFATjBTjzFslk6DjI5', // for Mapquest, OpenCage, Google Premier
+  apiKey: 'pViqJFOnVmpOCwqDbbcAAw4NSmY3IAWm', // for Mapquest, OpenCage, Google Premier
   // formatter: null // 'gpx', 'string', ...
 };
 const geocoder = NodeGeocoder(options);
@@ -101,17 +102,9 @@ function getLocalidades(bibliotecas: BibliotecaCV[]): LocalidadModel[] {
 
 async function getBibliotecas(bibliotecas: BibliotecaCV[]): Promise<BibliotecaModel[]> {
   let bibliotecasRes: BibliotecaModel[] = [];
-  let cords: any[] = []
+
   const promise = await bibliotecas.map(async (biblioteca, index) => {
-    let coordinates = await getCoordinates('España Comunidad Valenciana' + biblioteca.CP + ' ' + biblioteca.NOM_MUNICIPIO + ' ' + biblioteca.DIRECCION)
-    coordinates = coordinates.filter((coord: any) => {
-      return coord.countryCode === 'ES' && coord.stateCode === 'Comunidad Valenciana';
-    })
-    cords.push(coordinates)
-    if (coordinates.length === 0) {
-      coordinates = await getCoordinates('España, ' + biblioteca.CP + ', ' + biblioteca.NOM_MUNICIPIO + ', ' + biblioteca.DIRECCION)
-    }
-    console.log(coordinates);
+    const coordinates = await getCoordinates('España Comunidad Valenciana cp.' + biblioteca.CP + ' ' + biblioteca.NOM_MUNICIPIO + ' ' + biblioteca.DIRECCION)
     const bibliotecaParseada: BibliotecaModel = {
       nombre: biblioteca.NOMBRE,
       tipo: biblioteca.DESC_CARACTER === 'PÚBLICA' ? 'Pública' : 'Privada',
@@ -126,11 +119,21 @@ async function getBibliotecas(bibliotecas: BibliotecaCV[]): Promise<BibliotecaMo
     }
     bibliotecasRes.push(bibliotecaParseada)
   })
-
   await Promise.all(promise);
-  fs.writeFileSync('./COORDENADAS', JSON.stringify(cords))
 
-  return bibliotecasRes;
+  const bibliotecasUnicas: BibliotecaModel[] = []
+
+  bibliotecasRes.forEach(biblioteca => {
+    const repeated = bibliotecasUnicas.filter(bibliotecaUnica => {
+      return bibliotecaUnica.nombre === biblioteca.nombre
+    })
+
+    if (!repeated.length) {
+      bibliotecasUnicas.push(biblioteca)
+    }
+  })
+
+  return bibliotecasUnicas;
 }
 
 function populateDB(provincias: ProvinciumModel[], localidades: LocalidadModel[], bibliotecas: BibliotecaModel[]) {
@@ -152,6 +155,7 @@ function populateDB(provincias: ProvinciumModel[], localidades: LocalidadModel[]
         bibliotecas,
         {
           updateOnDuplicate: [
+            'nombre',
             'tipo',
             'direccion',
             'codigoPostal',
