@@ -7,6 +7,8 @@ const fs = require('fs');
 import path from "path";
 const { Biblioteca, Localidad, Provincia } = require('../../IEIBack/src/sqldb');
 const NodeGeocoder = require('node-geocoder');
+import { convertCSVToJSON } from "../../IEICV/src";
+
 
 
 
@@ -105,9 +107,10 @@ async function getBibliotecas(bibliotecas: BibliotecaCV[]): Promise<BibliotecaMo
 
   const promise = await bibliotecas.map(async (biblioteca, index) => {
     const coordinates = await getCoordinates('España Comunidad Valenciana cp.' + biblioteca.CP + ' ' + biblioteca.NOM_MUNICIPIO + ' ' + biblioteca.DIRECCION)
+    console.log(biblioteca.COD_CARACTER)
     const bibliotecaParseada: BibliotecaModel = {
       nombre: biblioteca.NOMBRE,
-      tipo: biblioteca.DESC_CARACTER === 'PÚBLICA' ? 'Pública' : 'Privada',
+      tipo: biblioteca.COD_CARACTER === 'PU' ? 'Pública' : 'Privada',
       direccion: biblioteca.DIRECCION,
       codigoPostal: biblioteca.CP.toString(),
       longitud: coordinates[0]?.longitude /* + biblioteca.lonwgs84 */,
@@ -172,5 +175,11 @@ function populateDB(provincias: ProvinciumModel[], localidades: LocalidadModel[]
     }).catch(console.log)
   }).catch(console.log)
 }
-// extractData(JSON.parse(fs.readFileSync(path.join(__dirname, './bibliotecas.json')).toString()));
 
+async function testExtractor() {
+  const rawData = fs.readFileSync(path.join(__dirname, '../CV.csv')).toString();
+  const parsedData = await convertCSVToJSON(rawData);
+  extractDataCV(parsedData);
+}
+
+// testExtractor();
