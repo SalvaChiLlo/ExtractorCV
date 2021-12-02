@@ -8,9 +8,8 @@ import path from "path";
 const { Biblioteca, Localidad, Provincia } = require('../../IEIBack/src/sqldb');
 const NodeGeocoder = require('node-geocoder');
 import { convertCSVToJSON } from "../../IEICV/src";
-
-
-
+import { Builder, By, Key, until } from 'selenium-webdriver';
+import { Options } from 'selenium-webdriver/chrome';
 
 const options = {
   provider: 'mapquest',
@@ -23,7 +22,48 @@ const geocoder = NodeGeocoder(options);
 // Using callback
 
 async function getCoordinates(dir: string) {
-  return await geocoder.geocode(dir);
+  const opts = new Options();
+  opts.addArguments('--headless', 'window-size=1192,870', '--no-sandbox')
+  opts.addArguments('--disable-rtc-smoothness-algorithm', '--disable-gpu-compositing', '--disable-gpu', '--force-device-scale-factor=1', '--disable-lcd-text')
+
+  let driver = await new Builder().forBrowser('chrome').setChromeOptions(opts).build();
+
+  try {
+    await driver.get('https://www.coordenadas-gps.com/')
+    // await driver.sleep(5000)
+    const input = await driver.findElement({ id: 'address' })
+    // await driver.sleep(5000)
+    for (let index = 0; index < 300; index++) {
+      await input.sendKeys(Key.BACK_SPACE)
+    }
+    // await driver.sleep(5000)
+    await input.sendKeys(dir)
+    await driver.manage().setTimeouts({ implicit: 10000 })
+    // await driver.sleep(5000)
+
+    const submit = await driver.findElement(By.xpath('//*[@id="wrap"]/div[2]/div[3]/div[1]/form[1]/div[2]/div/button'))
+    await submit.click();
+    await driver.sleep(5000)
+
+    const latitude = await driver.findElement({ id: 'latitude' })
+    const latitudeVal = await latitude.getAttribute("value")
+    const longitude = await driver.findElement({ id: 'longitude' })
+    const longitudeVal = await longitude.getAttribute("value")
+
+    return [{
+      latitude: latitudeVal,
+      longitude: longitudeVal
+    }];
+  } catch (e: any) {
+    console.log(e)
+    return [{
+      latitude: 0,
+      longitude: 0
+    }]
+  }
+  finally {
+    await driver.close();
+  }
 }
 
 export async function extractDataCV(rawData: BibliotecaCV[]) {
@@ -105,24 +145,24 @@ function getLocalidades(bibliotecas: BibliotecaCV[]): LocalidadModel[] {
 async function getBibliotecas(bibliotecas: BibliotecaCV[]): Promise<BibliotecaModel[]> {
   let bibliotecasRes: BibliotecaModel[] = [];
 
-  const promise = await bibliotecas.map(async (biblioteca, index) => {
-    const coordinates = await getCoordinates('España Comunidad Valenciana cp.' + biblioteca.CP + ' ' + biblioteca.NOM_MUNICIPIO + ' ' + biblioteca.DIRECCION)
-    console.log(biblioteca.COD_CARACTER)
+  for (let index = 0; index < bibliotecas.length; index++) {
+    const coordinates = await getCoordinates(`${bibliotecas[index].DIRECCION}, ${bibliotecas[index].CP} ${bibliotecas[index].NOM_MUNICIPIO}, España`)
+    console.log(`${bibliotecas[index].DIRECCION}, ${bibliotecas[index].CP} ${bibliotecas[index].NOM_MUNICIPIO}, España`)
+    console.log(coordinates)
     const bibliotecaParseada: BibliotecaModel = {
-      nombre: biblioteca.NOMBRE,
-      tipo: biblioteca.COD_CARACTER === 'PU' ? 'Pública' : 'Privada',
-      direccion: biblioteca.DIRECCION,
-      codigoPostal: biblioteca.CP.toString(),
-      longitud: coordinates[0]?.longitude /* + biblioteca.lonwgs84 */,
-      latitud: coordinates[0]?.latitude /* + biblioteca.latwgs84 */,
-      telefono: biblioteca.TELEFONO.slice(5, 14),
-      email: biblioteca.EMAIL,
-      descripcion: biblioteca.TIPO,
-      LocalidadNombreLocalidad: biblioteca.NOM_MUNICIPIO.slice(0, 1) + biblioteca.NOM_MUNICIPIO.slice(1).toLowerCase(),
+      nombre: bibliotecas[index].NOMBRE,
+      tipo: bibliotecas[index].COD_CARACTER === 'PU' ? 'Pública' : 'Privada',
+      direccion: bibliotecas[index].DIRECCION,
+      codigoPostal: bibliotecas[index].CP.toString(),
+      longitud: +coordinates[0]?.longitude /* + bibliotecas[index].lonwgs84 */,
+      latitud: +coordinates[0]?.latitude /* + bibliotecas[index].latwgs84 */,
+      telefono: bibliotecas[index].TELEFONO.slice(5, 14),
+      email: bibliotecas[index].EMAIL,
+      descripcion: bibliotecas[index].TIPO,
+      LocalidadNombreLocalidad: bibliotecas[index].NOM_MUNICIPIO.slice(0, 1) + bibliotecas[index].NOM_MUNICIPIO.slice(1).toLowerCase(),
     }
     bibliotecasRes.push(bibliotecaParseada)
-  })
-  await Promise.all(promise);
+  }
 
   const bibliotecasUnicas: BibliotecaModel[] = []
 
@@ -182,4 +222,4 @@ async function testExtractor() {
   extractDataCV(parsedData);
 }
 
-// testExtractor();
+testExtractor();
