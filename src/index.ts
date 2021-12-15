@@ -222,4 +222,4 @@ async function testExtractor() {
   extractDataCV(parsedData);
 }
 
-testExtractor();
+// testExtractor();
