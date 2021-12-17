@@ -21,48 +21,55 @@ const geocoder = NodeGeocoder(options);
 
 // Using callback
 
-async function getCoordinates(dir: string) {
+async function getAllCoordinates(bibliotecas: BibliotecaCV[]) {
+  const coordenadas = new Array(bibliotecas.length);
+
   const opts = new Options();
   opts.addArguments('--headless', 'window-size=1192,870', '--no-sandbox')
   opts.addArguments('--disable-rtc-smoothness-algorithm', '--disable-gpu-compositing', '--disable-gpu', '--force-device-scale-factor=1', '--disable-lcd-text')
 
   let driver = await new Builder().forBrowser('chrome').setChromeOptions(opts).build();
-
+  let index = 0;
   try {
     await driver.get('https://www.coordenadas-gps.com/')
-    // await driver.sleep(5000)
-    const input = await driver.findElement({ id: 'address' })
-    // await driver.sleep(5000)
-    for (let index = 0; index < 300; index++) {
-      await input.sendKeys(Key.BACK_SPACE)
+    for (let i = 0; i < bibliotecas.length; i++) {
+      index = i;
+      try {
+        const dir = `${bibliotecas[i].DIRECCION}, ${bibliotecas[i].CP} ${bibliotecas[i].NOM_MUNICIPIO}, España`
+
+        const input = await driver.findElement({ id: 'address' })
+        await input.clear();
+        await input.sendKeys(dir)
+
+        const submit = await driver.findElement(By.xpath('//*[@id="wrap"]/div[2]/div[3]/div[1]/form[1]/div[2]/div/button'))
+        await submit.click();
+        await driver.sleep(1000)
+
+        const latitude = await driver.findElement({ id: 'latitude' })
+        const latitudeVal = await latitude.getAttribute("value")
+        const longitude = await driver.findElement({ id: 'longitude' })
+        const longitudeVal = await longitude.getAttribute("value")
+
+        coordenadas[i] = {
+          latitude: latitudeVal,
+          longitude: longitudeVal
+        }
+      } catch (e: any) {
+        coordenadas[i] = {
+          latitude: 0,
+          longitude: 0
+        }
+      }
     }
-    // await driver.sleep(5000)
-    await input.sendKeys(dir)
-    await driver.manage().setTimeouts({ implicit: 10000 })
-    // await driver.sleep(5000)
-
-    const submit = await driver.findElement(By.xpath('//*[@id="wrap"]/div[2]/div[3]/div[1]/form[1]/div[2]/div/button'))
-    await submit.click();
-    await driver.sleep(5000)
-
-    const latitude = await driver.findElement({ id: 'latitude' })
-    const latitudeVal = await latitude.getAttribute("value")
-    const longitude = await driver.findElement({ id: 'longitude' })
-    const longitudeVal = await longitude.getAttribute("value")
-
-    return [{
-      latitude: latitudeVal,
-      longitude: longitudeVal
-    }];
   } catch (e: any) {
-    console.log(e)
-    return [{
+    coordenadas[index] = {
       latitude: 0,
       longitude: 0
-    }]
+    }
   }
   finally {
     await driver.close();
+    return coordenadas;
   }
 }
 
@@ -145,18 +152,16 @@ function getLocalidades(bibliotecas: BibliotecaCV[]): LocalidadModel[] {
 
 async function getBibliotecas(bibliotecas: BibliotecaCV[]): Promise<BibliotecaModel[]> {
   let bibliotecasRes: BibliotecaModel[] = [];
+  const coordinates = await getAllCoordinates(bibliotecas)
 
   for (let index = 0; index < bibliotecas.length; index++) {
-    const coordinates = await getCoordinates(`${bibliotecas[index].DIRECCION}, ${bibliotecas[index].CP} ${bibliotecas[index].NOM_MUNICIPIO}, España`)
-    console.log(`${bibliotecas[index].DIRECCION}, ${bibliotecas[index].CP} ${bibliotecas[index].NOM_MUNICIPIO}, España`)
-    console.log(coordinates)
     const bibliotecaParseada: BibliotecaModel = {
       nombre: bibliotecas[index].NOMBRE,
       tipo: bibliotecas[index].COD_CARACTER === 'PU' ? 'Pública' : 'Privada',
       direccion: bibliotecas[index].DIRECCION,
       codigoPostal: bibliotecas[index].CP.toString(),
-      longitud: +coordinates[0]?.longitude /* + bibliotecas[index].lonwgs84 */,
-      latitud: +coordinates[0]?.latitude /* + bibliotecas[index].latwgs84 */,
+      longitud: +coordinates[index]?.longitude /* + bibliotecas[index].lonwgs84 */,
+      latitud: +coordinates[index]?.latitude /* + bibliotecas[index].latwgs84 */,
       telefono: bibliotecas[index].TELEFONO.slice(5, 14),
       email: bibliotecas[index].EMAIL,
       descripcion: bibliotecas[index].TIPO,
