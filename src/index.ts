@@ -74,6 +74,7 @@ export async function extractDataCV(rawData: BibliotecaCV[]) {
 
   console.log('Populating CV_DATA');
   await populateDB(provincias, localidades, bibliotecas);
+  return { numLocalidades: localidades.length, numProvincias: provincias.length }
 }
 
 function getProvincias(bibliotecas: BibliotecaCV[]): ProvinciumModel[] {
