@@ -73,7 +73,7 @@ export async function extractDataCV(rawData: BibliotecaCV[]) {
   const bibliotecas: BibliotecaModel[] = await getBibliotecas(rawData);
 
   console.log('Populating CV_DATA');
-  populateDB(provincias, localidades, bibliotecas);
+  await populateDB(provincias, localidades, bibliotecas);
 }
 
 function getProvincias(bibliotecas: BibliotecaCV[]): ProvinciumModel[] {
@@ -179,41 +179,38 @@ async function getBibliotecas(bibliotecas: BibliotecaCV[]): Promise<BibliotecaMo
   return bibliotecasUnicas;
 }
 
-function populateDB(provincias: ProvinciumModel[], localidades: LocalidadModel[], bibliotecas: BibliotecaModel[]) {
-  Provincia.bulkCreate(
+async function populateDB(provincias: ProvinciumModel[], localidades: LocalidadModel[], bibliotecas: BibliotecaModel[]) {
+  const prov = await Provincia.bulkCreate(
     provincias,
     {
       ignoreDuplicates: true
     }
-  ).then(() => {
-    console.log('SUCCESS POPULATING PROVINCIAS');
-    Localidad.bulkCreate(
-      localidades,
-      {
-        ignoreDuplicates: true
-      }
-    ).then(() => {
-      console.log('SUCCESS POPULATING LOCALIDADES');
-      Biblioteca.bulkCreate(
-        bibliotecas,
-        {
-          updateOnDuplicate: [
-            'nombre',
-            'tipo',
-            'direccion',
-            'codigoPostal',
-            'longitud',
-            'latitud',
-            'telefono',
-            'email',
-            'descripcion',
-          ]
-        }
-      ).then(() => {
-        console.log('SUCCESS POPULATING BIBLIOTECAS');
-      }).catch(console.log)
-    }).catch(console.log)
-  }).catch(console.log)
+  )
+  console.log('SUCCESS POPULATING PROVINCIAS', prov.length);
+  const pob = await Localidad.bulkCreate(
+    localidades,
+    {
+      ignoreDuplicates: true
+    }
+  )
+  console.log('SUCCESS POPULATING LOCALIDADES', pob.length);
+  const bibl = await Biblioteca.bulkCreate(
+    bibliotecas,
+    {
+      updateOnDuplicate: [
+        'nombre',
+        'tipo',
+        'direccion',
+        'codigoPostal',
+        'longitud',
+        'latitud',
+        'telefono',
+        'email',
+        'descripcion',
+      ]
+    }
+  )
+  console.log('SUCCESS POPULATING BIBLIOTECAS', bibl.length);
 }
 
 async function testExtractor() {
