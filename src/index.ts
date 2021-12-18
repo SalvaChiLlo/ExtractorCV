@@ -150,6 +150,7 @@ function getLocalidades(bibliotecas: BibliotecaCV[]): LocalidadModel[] {
   return localidadesUnicas;
 }
 
+
 async function getBibliotecas(bibliotecas: BibliotecaCV[]): Promise<BibliotecaModel[]> {
   let bibliotecasRes: BibliotecaModel[] = [];
   const coordinates = await getAllCoordinates(bibliotecas)
@@ -159,7 +160,7 @@ async function getBibliotecas(bibliotecas: BibliotecaCV[]): Promise<BibliotecaMo
       nombre: bibliotecas[index].NOMBRE,
       tipo: bibliotecas[index].COD_CARACTER === 'PU' ? 'Pública' : 'Privada',
       direccion: bibliotecas[index].DIRECCION,
-      codigoPostal: bibliotecas[index].CP.toString(),
+      codigoPostal: bibliotecas[index].CP.toString().length < 5 ? '0' + bibliotecas[index].CP.toString() : bibliotecas[index].CP.toString(),
       longitud: +coordinates[index]?.longitude /* + bibliotecas[index].lonwgs84 */,
       latitud: +coordinates[index]?.latitude /* + bibliotecas[index].latwgs84 */,
       telefono: bibliotecas[index].TELEFONO.slice(5, 14),
