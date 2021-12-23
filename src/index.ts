@@ -166,6 +166,7 @@ async function getBibliotecas(bibliotecas: BibliotecaCV[]): Promise<BibliotecaMo
       telefono: bibliotecas[index].TELEFONO.slice(5, 14),
       email: bibliotecas[index].EMAIL,
       descripcion: bibliotecas[index].TIPO,
+      web: bibliotecas[index].WEB,
       LocalidadNombreLocalidad: bibliotecas[index].NOM_MUNICIPIO.slice(0, 1) + bibliotecas[index].NOM_MUNICIPIO.slice(1).toLowerCase(),
     }
     bibliotecasRes.push(bibliotecaParseada)
