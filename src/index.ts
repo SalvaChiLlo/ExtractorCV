@@ -25,7 +25,7 @@ async function getAllCoordinates(bibliotecas: BibliotecaCV[]) {
   const coordenadas = new Array(bibliotecas.length);
 
   const opts = new Options();
-  opts.addArguments('--headless', 'window-size=1192,870', '--no-sandbox')
+  // opts.addArguments('--headless', 'window-size=1192,870', '--no-sandbox')
   opts.addArguments('--disable-rtc-smoothness-algorithm', '--disable-gpu-compositing', '--disable-gpu', '--force-device-scale-factor=1', '--disable-lcd-text')
 
   let driver = await new Builder().forBrowser('chrome').setChromeOptions(opts).build();
