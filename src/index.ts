@@ -26,33 +26,33 @@ async function getAllCoordinates(bibliotecas: BibliotecaCV[]) {
 
   const opts = new Options();
   // opts.addArguments('--headless', 'window-size=1192,870', '--no-sandbox')
-  opts.addArguments('--disable-rtc-smoothness-algorithm', '--disable-gpu-compositing', '--disable-gpu', '--force-device-scale-factor=1', '--disable-lcd-text')
+  // opts.addArguments('--disable-rtc-smoothness-algorithm', '--disable-gpu-compositing', '--disable-gpu', '--force-device-scale-factor=1', '--disable-lcd-text')
 
-  let driver = await new Builder().forBrowser('chrome').setChromeOptions(opts).build();
-  let index = 0;
+  // let driver = await new Builder().forBrowser('chrome').setChromeOptions(opts).build();
+  // let index = 0;
   try {
-    await driver.get('https://www.coordenadas-gps.com/')
+    // await driver.get('https://www.coordenadas-gps.com/')
     for (let i = 0; i < bibliotecas.length; i++) {
-      index = i;
+      // index = i;
       try {
         const dir = `${bibliotecas[i].DIRECCION}, ${bibliotecas[i].CP} ${bibliotecas[i].NOM_MUNICIPIO}, España`
+        const res: GeoCoder[] = await geocoder.geocode(dir);
+        // const input = await driver.findElement({ id: 'address' })
+        // await input.clear();
+        // await input.sendKeys(dir)
 
-        const input = await driver.findElement({ id: 'address' })
-        await input.clear();
-        await input.sendKeys(dir)
+        // const submit = await driver.findElement(By.xpath('//*[@id="wrap"]/div[2]/div[3]/div[1]/form[1]/div[2]/div/button'))
+        // await submit.click();
+        // await driver.sleep(1000)
 
-        const submit = await driver.findElement(By.xpath('//*[@id="wrap"]/div[2]/div[3]/div[1]/form[1]/div[2]/div/button'))
-        await submit.click();
-        await driver.sleep(1000)
-
-        const latitude = await driver.findElement({ id: 'latitude' })
-        const latitudeVal = await latitude.getAttribute("value")
-        const longitude = await driver.findElement({ id: 'longitude' })
-        const longitudeVal = await longitude.getAttribute("value")
+        // const latitude = await driver.findElement({ id: 'latitude' })
+        // const latitudeVal = await latitude.getAttribute("value")
+        // const longitude = await driver.findElement({ id: 'longitude' })
+        // const longitudeVal = await longitude.getAttribute("value")
 
         coordenadas[i] = {
-          latitude: latitudeVal,
-          longitude: longitudeVal
+          latitude: res[0].latitude,
+          longitude: res[0].longitude
         }
       } catch (e: any) {
         coordenadas[i] = {
@@ -62,13 +62,9 @@ async function getAllCoordinates(bibliotecas: BibliotecaCV[]) {
       }
     }
   } catch (e: any) {
-    coordenadas[index] = {
-      latitude: 0,
-      longitude: 0
-    }
   }
   finally {
-    await driver.close();
+    // await driver.close();
     return coordenadas;
   }
 }
